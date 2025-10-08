@@ -711,7 +711,7 @@ In this section we generate the config file to do Cross-calibration, Self-calibr
     ./submit_pipeline.sh
     ```
 
-Once all the imaging jobs have completed, you should see your first science image, as shown below. Take a moment to inspect it carefully — does it meet your expectations? Consider what aspects could be improved, such as image quality, noise levels, or calibration accuracy. 
+Once all the imaging jobs have completed, you should see your first science image, as shown below. Take a moment to inspect it carefully — does it meet your expectations? Consider what aspects could be improved, such as image quality, noise levels, or calibration accuracy. View the figures in `plots` directory to inspect. 
 
 ![ACT-CL J2023.3-5535 in L band](1525469431_sdp_l0_2025-09-03T09-10-19_s1f.ACT-CLJ2023.3-5535.science_image.image.tt0-image-2025-09-17-18-24-06.png)
 
