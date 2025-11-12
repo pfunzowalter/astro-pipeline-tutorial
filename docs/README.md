@@ -1,4 +1,4 @@
-# ProcessMeerKat Tutorial
+# ProcessMeerKAT Tutorial
 This tutorial is designed to help you use the processMeerKAT Pipeline on the ilifu cluster, utilising public datasets from the SARAO archive. Details about the processMeerKAT pipeline can be found in the official [documentation](https://idia-pipelines.github.io/docs/processMeerKAT). We highly recommend reviewing these resources to gain a deeper understanding of the pipeline’s features and usage. The documentation is accompanied by a detailed [tutorial](https://idia-pipelines.github.io/docs/processMeerKAT/deep-2-tutorial/), which is invaluable for learning how to effectively process MeerKAT data.
 
 In our case, however, we focus on a different dataset that presents some specific challenges, such as missing **fields** and **reference antenna** in the config file.
@@ -634,7 +634,7 @@ Below is an example case where the correct reference antenna was missing.
     srun: error: compute-203: task 0: Exited with exit code 1
     srun: Terminating StepId=11534154.0
     ```
-    In this case, the error message indicates a missing antenna — an issue we addressed earlier in the main tutorial. In other instances, the failure might occur during the `flag_round_1` or any other processing step. In such cases, you should inspect the log files for that step to identify and resolve the problem.
+    In this case, the error message indicates a missing antenna — an issue we addressed earlier in the main tutorial. In other instances, the failure might occur during the `flag_round_1` or any other processing stp. In such cases, you should inspect the log files for that step to identify and resolve the problem.
 
 
 ### Self-Calibration and Science Imaging with ProcessMeerKAT
@@ -701,3 +701,235 @@ Once all the imaging jobs have completed, you should see your first science imag
 
 
 # OXKAT Tutorial
+This tutorial will guide you through using the OXKAT Pipeline on the ilifu cluster, using the specific DEEP2 observation `1491550051`.
+
+We strongly recommend reviewing the official OXKAT Pipeline [documentation](https://github.com/IanHeywood/oxkat) to gain a deeper understanding of its features and operation.
+
+We chose observation 1491550051 because of its calibrator setup: it has a secondary calibrator that is distinct from the primary calibrator. This contrasts with the ACT-CL J2023.3-5535 data, which relied on the same source, J1939-6342, for both primary and secondary calibration.
+
+The selection is crucial because the initial steps of the OXKAT calibration process have shown to be less effective or fails when the primary and secondary calibrators is the same. Using separate calibrators helps ensure the pipeline runs smoothly during the early processing steps.
+
+## Observation details
+Similarly you can run the `listobs` for this MS and the `1491550051-details.txt` file would look like.
+```
+================================================================================
+           MeasurementSet Name:  /scratch3/users/walter/pipeline-training/deep2-2/1491550051.ms      MS Version 2
+================================================================================
+   Observer: Tom     Project: 20170407-0003
+Observation: MeerKAT
+Data records: 82144       Total elapsed time = 2614.39 seconds
+   Observed from   07-Apr-2017/07:27:40.7   to   07-Apr-2017/08:11:15.1 (UTC)
+
+   ObservationID = 0         ArrayID = 0
+  Date        Timerange (UTC)          Scan  FldId FieldName             nRows     SpwIds   Average Interval(s)    ScanIntent
+  07-Apr-2017/07:27:40.7 - 07:32:40.6     1      0 1934-638                 10200  [0]  [4] [CALIBRATE_BANDPASS,CALIBRATE_FLUX]
+              07:33:16.6 - 07:38:12.5     2      1 0408-65                  10064  [0]  [4] [CALIBRATE_AMPLI,CALIBRATE_BANDPASS,CALIBRATE_FLUX,CALIBRATE_PHASE]
+              07:38:28.5 - 07:40:24.4     3      2 0252-712                  3944  [0]  [4] [CALIBRATE_AMPLI,CALIBRATE_PHASE]
+              07:40:44.4 - 07:45:40.3     4      3 DEEP_2_off               10064  [0]  [4] [TARGET]
+              07:45:56.3 - 07:47:52.2     5      2 0252-712                  3944  [0]  [4] [CALIBRATE_AMPLI,CALIBRATE_PHASE]
+              07:48:08.2 - 07:53:04.1     6      3 DEEP_2_off               10064  [0]  [4] [TARGET]
+              07:53:20.1 - 07:55:20.0     7      2 0252-712                  4080  [0]  [4] [CALIBRATE_AMPLI,CALIBRATE_PHASE]
+              07:55:36.0 - 08:00:31.9     8      3 DEEP_2_off               10064  [0]  [4] [TARGET]
+              08:00:47.9 - 08:02:43.8     9      2 0252-712                  3944  [0]  [4] [CALIBRATE_AMPLI,CALIBRATE_PHASE]
+              08:02:59.8 - 08:07:55.7    10      3 DEEP_2_off               10064  [0]  [4] [TARGET]
+              08:08:11.7 - 08:10:07.7    11      2 0252-712                  3944  [0]  [4] [CALIBRATE_AMPLI,CALIBRATE_PHASE]
+              08:10:23.6 - 08:11:15.1    12      3 DEEP_2_off                1768  [0]  [4] [TARGET]
+           (nRows = Total number of rows per scan)
+Fields: 4
+  ID   Code Name                RA               Decl           Epoch   SrcId      nRows
+  0    T    1934-638            19:39:25.030000 -63.42.45.60000 J2000   0          10200
+  1    T    0408-65             04:08:20.380000 -65.45.09.10000 J2000   1          10064
+  2    T    0252-712            02:52:46.150000 -71.04.35.30000 J2000   2          19856
+  3    T    DEEP_2_off          03:59:46.200000 -80.36.20.60000 J2000   3          42024
+Spectral Windows:  (1 unique spectral windows and 1 unique polarization setups)
+  SpwID  Name   #Chans   Frame   Ch0(MHz)  ChanWid(kHz)  TotBW(kHz) CtrFreq(MHz)  Corrs
+  0      none    4096   TOPO     856.000       208.984    856000.0   1283.8955   XX  XY  YX  YY
+Sources: 4
+  ID   Name                SpwId RestFreq(MHz)  SysVel(km/s)
+  0    1934-638            0     1284           0.001
+  1    0408-65             0     1284           0.001
+  2    0252-712            0     1284           0.001
+  3    DEEP_2_off          0     1284           0.001
+Antennas: 16:
+  ID   Name  Station   Diam.    Long.         Lat.                Offset from array center (m)                ITRF Geocentric coordinates (m)
+                                                                     East         North     Elevation               x               y               z
+  0    m000  m000      13.5 m   +021.26.37.7  -30.32.39.3         -9.3315       30.5123      -13.7488  5109224.244081  2006790.329682 -3239100.601853
+  1    m002  m002      13.5 m   +021.26.36.8  -30.32.39.8        -33.1815       13.5672      -13.7541  5109224.943711  2006764.980703 -3239115.192851
+  2    m005  m005      13.5 m   +021.26.34.2  -30.32.41.7       -103.1671      -45.3159      -13.6884  5109222.728014  2006688.920477 -3239165.938258
+  3    m011  m011      13.5 m   +021.26.41.2  -30.32.43.9         82.9436     -114.2856      -12.6212  5109122.918981  2006849.667876 -3239225.879103
+  4    m012  m012      13.5 m   +021.26.43.3  -30.32.44.5        138.9495     -130.4748      -12.3820  5109094.976657  2006898.862921 -3239239.943208
+  5    m018  m018      13.5 m   +021.26.42.0  -30.32.40.5        104.6648       -8.0697      -12.9552  5109164.953297  2006889.515614 -3239134.233344
+  6    m020  m020      13.5 m   +021.26.41.6  -30.32.42.2         95.9433      -61.8458      -12.7533  5109142.866214  2006871.469582 -3239180.649435
+  7    m042  m042      13.5 m   +021.26.24.4  -30.32.47.4       -362.7948     -222.5028      -14.5892  5109233.093012  2006414.063100 -3239318.077690
+  8    m049  m049      13.5 m   +021.24.22.5  -30.32.18.4      -3606.7979      674.9449      -16.6018  5110840.935829  2003560.083385 -3238544.127600
+  9    m057  m057      13.5 m   +021.26.49.1  -30.30.47.0        293.5452     3497.7956      -21.9060  5110746.279858  2007713.657982 -3236109.834690
+  10   m058  m058      13.5 m   +021.28.23.4  -30.31.05.6       2803.9945     2925.0388      -16.3818  5109561.316727  2009946.092403 -3236606.062809
+  11   m059  m059      13.5 m   +021.28.56.5  -30.32.08.0       3685.0434      997.2513       -6.7247  5108335.204937  2010410.628369 -3238271.543744
+  12   m060  m060      13.5 m   +021.28.46.5  -30.33.32.1       3419.1035    -1602.2355       -2.4315  5107206.614034  2009680.714437 -3240512.429428
+  13   m061  m061      13.5 m   +021.26.37.4  -30.33.47.8        -17.5027    -2086.0199       -6.9077  5108231.263887  2006391.531815 -3240926.733858
+  14   m062  m062      13.5 m   +021.25.43.9  -30.33.53.6      -1442.0284    -2265.8985       -6.7546  5108666.756192  2005032.436433 -3241081.698019
+  15   m063  m063      13.5 m   +021.24.29.5  -30.33.32.1      -3421.1962    -1602.0938       -9.4852  5109701.398386  2003312.684080 -3240508.721138
+```
+
+## Data Processing with OXKAT.
+The Oxkat pipeline is divided into five (or sometimes six) main processing stages: GET_INFO, 1GC, FLAG, 2GC, and 3GC (either peel or facet). Each of these steps is briefly described [here](https://github.com/IanHeywood/oxkat/tree/master/setups); please refer to that page for detailed information. In this processing, we will run the pipeline up to the 2GC stage.
+
+1. Log in to ilifu
+    ```bash
+    ssh username@slurm.ilifu.ac.za
+    ```
+2. Navigate to a working area `/scratch3/users/<username>/tutorial/1491550051` or `/scratch3/projects/<project>/tutorial/1491550051)`:
+    ```bash
+    cd /scratch3/users/<username>/tutorial/1491550051
+    ```
+3. Clone the contents of [OXKAT-repo](https://github.com/IanHeywood/oxkat.git) into your working area:
+    ```bash
+    git clone https://github.com/IanHeywood/oxkat.git .
+    ```
+4. The first step is to run a script that gathers some required information about the observation:
+
+    ```bash
+    python setups/0_GET_INFO.py idia
+    ```
+    and you should see an output like
+    ```
+    --------------------+----------------------------------------------------------
+                        |
+                        | v0.4
+        o  x  k  a  t    | Please file an issue for bugs / help:
+                        | https://github.com/IanHeywood/oxkat
+                        |
+    --------------------+----------------------------------------------------------
+    2025-11-11 12:32:22 | Observing band is not yet determined
+                        | Intermediate flag tables will not be backed up
+                        | Setting up job to examine master MS
+    --------------------+----------------------------------------------------------
+    Infrastructure      | IDIA
+    Singularity         | Enabled
+    Searching           | ['/idia/software/containers/', '/users/walter/containers/']
+    Found container     | oxkat-0.41.sif
+    --------------------+----------------------------------------------------------
+    Run file            | submit_info_job.sh
+    --------------------+----------------------------------------------------------
+    ```
+    This looks okay! Now we're ready to submit our analysis as a job to Slurm using the submission script. Run the following command in your terminal to start the job:
+    ```bash
+    ./submit_info_job.sh
+    ```
+    Once submitted, you can monitor the job's status immediately. To see the status of all jobs you own, use the following command: `squeue -u $USER`.
+    ```
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+          11908015      Main INFO_Xms   walter PD       0:00      1 (Priority)
+    ```
+
+    After your job completes, you can verify its success by checking the contents of your working directory.
+
+    - You will see several new files created during the execution of the job.
+    - The critical output you need for the next processing step is the project_info.json file.
+    
+    Please ensure this file exists before moving on to the next section of the tutorial.
+
+    5. Now that you have the `project_info.json` file from the previous step, we're ready to perform the Reference Calibration (1GC). This process is similar to the GET_INFO step, where we first generate the necessary job files and then submit them to the cluster.
+
+        First, generate the job submission scripts by running the Python setup script with your project identifier (idia):
+        ```bash
+        python setups/1GC.py idia
+        ```
+        similarly your output should look like
+        ```
+        --------------------+----------------------------------------------------------
+                            |
+                            | v0.4
+            o  x  k  a  t   | Please file an issue for bugs / help:
+                            | https://github.com/IanHeywood/oxkat
+                            |
+        --------------------+----------------------------------------------------------
+        2025-11-11 13:22:32 | Observing band is L
+                            | Intermediate flag tables will not be backed up
+                            | 1GC (referenced calibration) setup
+        --------------------+----------------------------------------------------------
+        --------------------+----------------------------------------------------------
+        Infrastructure      | IDIA
+        Singularity         | Enabled
+        Searching           | ['/idia/software/containers/', '/users/walter/containers/']
+        Found container     | oxkat-0.41.sif
+        --------------------+----------------------------------------------------------
+        Run file            | submit_1GC_jobs.sh
+        --------------------+----------------------------------------------------------
+        ```
+        Next, submit the generated calibration jobs to Slurm using the following script:
+        ```bash
+        ./submit_1GC_jobs.sh
+        ```
+        Immediately after submission, you can verify that your jobs are queued or running by monitoring the cluster queue:
+        ```bash
+        squeue -u $USER
+        ```
+        Note that there are multiple jobs submitted now.
+        ```
+        JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+          11908299      Main PLVISXms   walter PD       0:00      1 (Dependency)
+          11908298      Main SPTRGXms   walter PD       0:00      1 (Dependency)
+          11908297      Main PLTABXms   walter PD       0:00      1 (Dependency)
+          11908296      Main CL1GCXms   walter PD       0:00      1 (Dependency)
+          11908295      Main FGCALXms   walter PD       0:00      1 (Dependency)
+          11908294      Main FGBASXms   walter PD       0:00      1 (Dependency)
+          11908293      Main SPPREXms   walter PD       0:00      1 (Priority)
+        ```
+
+        If something goes wrong you can kill the running and queued jobs on a cluster with:
+        ```bash
+        source SCRIPTS/kill_1GC_jobs.sh
+        ```
+        Once the Reference Calibration (1GC) jobs have successfully completed, your working directory will contain new files and folders including the `VISPLOTS` folder. This folder holds important visibility plots generated by the shadems software, which are crucial for assessing the calibration quality.
+
+        You should inspect these plots to ensure the calibration was successful. For example, a file like plot-1491550051_1024ch-0252-712-CORRECTED_DATA-XX-amp-FREQ-ANTENNA1.png contains key information.
+
+        Below is an example of a similar visualization:
+        ![ACT-CL J2023.3-5535 in UHF band](plot-1491550051_1024ch-0252-712-CORRECTED_DATA-XX-amp-FREQ-ANTENNA1.png). 
+
+        ❓ Are you happy with the plots? If the calibration looks good, you are ready to proceed. If there are clear issues, you may need to revisit the calibration step.
+
+    6. Flagging: Similar to the previous 1GC and GET_INFO steps, this process is managed by the FLAG.py script. This script performs automated data cleanup using tricolour and initial imaging/mask generation using wsclean. When submitted to a cluster, the script efficiently runs these steps in parallel for all targets in your measurement set (MS).
+
+        Now, generate the job submission script and immediately submit the flagging jobs to the cluster:
+        ```bash
+        python setups/FLAG.py idia
+        ./submit_flag_jobs.sh
+        ```
+
+        Once all the jobs for this step have completed successfully, you will see new files and folders for inspection. Interestingly, this step generates the first images of your targets, which are placed in the `IMAGES` folder.
+
+        This folder includes a number of `FITS` files for various products, such as:
+        - MFS-Image (Top right)
+        - Models (bottom right)  
+        - Cleaning Masks (bottom left)
+        - Dirty Image (Top left)
+        - Point Spread Functions (PSF) (not displayed) 
+
+        You can use [CARTA](https://carta.idia.ac.za/) to visualize these images and inspect the results, as shown in the example below:
+
+        ![DEEP2 images after FLAG step](deep2_flags.png)
+
+    7. Direction-Independent Self-Calibration (2GC): The next step is the Direction-Independent Self-Calibration (2GC), which refines the calibration performed previously. This iterative process uses the masks generated in the Flagging step to achieve better phase and amplitude solutions. This process is managed by the 2GC.py script and is submitted to the cluster to run in parallel for all target fields. You can see the full technical details of this step [here](https://github.com/IanHeywood/oxkat/tree/master/setups).
+        
+        Similar to the previous steps, let's first generate the job submission script and then immediately submit the 2GC jobs to the cluster:
+        ```bash
+        python setups/2GC.py idia
+        ./submit_2GC_jobs.sh
+        ```
+        Once all the jobs are completed, you should see the final, self-calibrated (`pcalmask` and `datamask`) FITS images and associated files (models, masks) in the `IMAGES` folder.
+
+        These are your science-ready continuum images. We can now visualize and analyze the results using CARTA, as shown in the image of the target below:
+
+        CARTA is a powerful tool for post-processing analysis. Beyond simple visualization, you can calculate Sensitivity/RMS Noise: Determine the final quality of the image by calculating the Root Mean Square (RMS) noise in source-free regions.
+
+        If you have also processed this data using the ProcessMeerKAT pipeline, you can now compare the resulting images side-by-side to assess the differences and advantages of the oxkat approach.
+
+        ![DEEP2 images after 2GC step](deep2-pcorrect.png)
+
+        **We are done with this tutorial, see if you can now reduce your images**
+
+
+# CARACAL Tutorial
+
