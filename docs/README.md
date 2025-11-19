@@ -769,7 +769,7 @@ We chose observation 1491550051 because of its calibrator setup: it has a second
 The selection is crucial because the initial steps of the OXKAT calibration process have shown to be less effective or fails when the primary and secondary calibrators is the same. Using separate calibrators helps ensure the pipeline runs smoothly during the early processing steps.
 
 ## Observation details
-Similarly you can run the `listobs` for this MS and the `1491550051-details.txt` file would look like.
+Similarly if you run the `listobs()` for this MS and the `1491550051-details.txt` file would look like.
 ```
 ================================================================================
            MeasurementSet Name:  /scratch3/users/walter/pipeline-training/deep2-2/1491550051.ms      MS Version 2
@@ -831,7 +831,15 @@ Antennas: 16:
 ```
 
 ## Data Processing with OXKAT.
-The Oxkat pipeline is divided into five (or sometimes six) main processing stages: GET_INFO, 1GC, FLAG, 2GC, and 3GC (either peel or facet). Each of these steps is briefly described [here](https://github.com/IanHeywood/oxkat/tree/master/setups); please refer to that page for detailed information. In this processing, we will run the pipeline up to the 2GC stage.
+The OXKAT pipeline is a comprehensive, modular processing framework designed for the calibration and imaging of MeerKAT data. It is built on a sequence of distinct stages, each corresponding to a Python setup script that generates and submits a series of interdependent jobs (typically using Bash and various radio astronomy packages like CASA, WSClean, and CubiCal).
+
+The full processing flow is partitioned into sequential stages: GET_INFO, 1GC, FLAG, 2GC, 3GC_peel, and 3GC_facet. A key feature of OXKAT is the ability to pause after each stage to examine the data's state before continuing. Each of these steps is briefly described [here](https://github.com/IanHeywood/oxkat/tree/master/setups); please refer to that page for detailed information.
+
+Technically, only the 1GC and FLAG stages are required to obtain a calibrated image of your target. However, the resulting image is often significantly improved by applying direction-independent self-calibration.
+
+In this processing walk-through, we will run the pipeline up to the 2GC stage. This will provide us with a high-quality, calibrated Measurement Set (MS).
+
+**Now Lets Start with OXKAT.**
 
 1. Log in to ilifu
     ```bash
@@ -948,6 +956,8 @@ The Oxkat pipeline is divided into five (or sometimes six) main processing stage
         ![ACT-CL J2023.3-5535 in UHF band](plot-1491550051_1024ch-0252-712-CORRECTED_DATA-XX-amp-FREQ-ANTENNA1.png). 
 
         ❓ Are you happy with the plots? If the calibration looks good, you are ready to proceed. If there are clear issues, you may need to revisit the calibration step.
+    
+    **If you suspect there could be something at any point please inspect the logs of each step at `LOGS` directory**
 
     6. Flagging: Similar to the previous 1GC and GET_INFO steps, this process is managed by the FLAG.py script. This script performs automated data cleanup using tricolour and initial imaging/mask generation using wsclean. When submitted to a cluster, the script efficiently runs these steps in parallel for all targets in your measurement set (MS).
 
