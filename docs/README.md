@@ -1,5 +1,5 @@
 # ProcessMeerKAT Tutorial
-This tutorial is designed to help you use the processMeerKAT Pipeline on the ilifu cluster, utilising public datasets from the SARAO archive. Details about the processMeerKAT pipeline can be found in the official [documentation](https://idia-pipelines.github.io/docs/processMeerKAT). We highly recommend reviewing these resources to gain a deeper understanding of the pipeline’s features and usage. The documentation is accompanied by a detailed [tutorial](https://idia-pipelines.github.io/docs/processMeerKAT/deep-2-tutorial/), which is invaluable for learning how to effectively process MeerKAT data.
+This tutorial is designed to help you use the processMeerKAT Pipeline on the ilifu cluster, utilising public datasets from the [SARAO](https://archive.sarao.ac.za) archive. Details about the processMeerKAT pipeline can be found in the official [documentation](https://idia-pipelines.github.io/docs/processMeerKAT). We highly recommend reviewing these resources to gain a deeper understanding of the pipeline’s features and usage. The documentation is accompanied by a detailed [tutorial](https://idia-pipelines.github.io/docs/processMeerKAT/deep-2-tutorial/), which is invaluable for learning how to effectively process MeerKAT data.
 
 In our case, however, we focus on a different dataset that presents some specific challenges, such as missing **fields** and **reference antenna** in the config file.
 
@@ -16,7 +16,36 @@ Below is an image of this target in the UHF band:
 Image source: [SARAO SDP+Pipeline+overview](https://skaafrica.atlassian.net/wiki/spaces/ESDKB/pages/338723406/SDP+pipelines+overview)
 
 ## Observation details
-Before starting the calibration process, it is recommended -if not necessary- to get some basic information about the data set. General information about the MeerKat observations can be accessed from the SARAO archive but here you would like to check some basic infomation about the dataset such as the antennas, correlations and fields that are available. This is crucial because the processMeerKAT pipeline configuration uses the M059 antenna as the reference by default. If M059 is not present in your dataset, you will need to select a different reference antenna. You would also need to know the Target, and Calibrator and double check with the processMeerKAT if all is good. For some reasons mentinoned in the upcoming tutorial you may have to manually update the pipeline config file.
+Before launching into the calibration process, it's crucial to understand the foundational details of your Measurement Set (MS). While the processMeerKAT pipeline is designed to automate many steps, manually verifying the observation parameters is highly recommended, and sometimes necessary, to ensure a successful calibration.
+
+1. Data Access and Preliminary Information
+General information regarding your MeerKAT observations, such as scheduling and overall configuration, can be accessed through the SARAO Archive. However, for calibration purposes, we need to extract specific details directly from the MS itself.
+
+2. Crucial Dataset Details to Verify
+The following information is vital for correctly configuring the processMeerKAT pipeline and addressing potential issues:
+
+    - Antennas Present:
+    Why it Matters: The pipeline requires a reference antenna for phase calibration. By default, processMeerKAT is often configured to use M059.
+
+    Action: You must verify which antennas are present in your specific dataset. If M059 is not included, you must manually select and specify a different, functioning antenna as the reference in the pipeline configuration file.
+
+    - Correlations Available
+    Why it Matters: You need to confirm the presence and type of correlations recorded (e.g., XX, YY, XY, YX). This ensures the correct polarization calibration can be applied.
+
+    - Observed Fields (Target and Calibrators)
+    Why it Matters: You must clearly identify and confirm the Target Field(s), the Primary/Phase Calibrator, and the Flux Calibrator.
+
+    Action: Double-check this list against the fields the processMeerKAT pipeline detects automatically. Discrepancies may indicate a metadata issue in the MS or an error in your expected observation list.
+
+3. The Need for Manual Configuration 
+While processMeerKAT generates a configuration file based on the MS (which is a good starting point), you may need to manually update it. This is typically required when:
+The default reference antenna (M059) is missing (as mentioned above).
+You need to exclude flagged antennas or corrupted fields.
+
+Specific tutorial steps (mentioned later) require non-default calibration settings.
+
+Knowing the dataset specifics allows you to troubleshoot confidently and manually override the pipeline's defaults when the situation demands it.
+
 
 ## Lets Inspect the data with CASA interactively on ilifu
 1. Log in to slurm-ilifu:  
@@ -86,7 +115,7 @@ cachesize      = 50.0                    # EXPERIMENTAL. Maximum size in megabyt
 ```bash
 vis = /idia/data/public/1525469431/1525469431_sdp_l0.ms
 ``` 
-    and also provide an output file:
+and also provide an output file:
 ```bash
 listfile = details_1525469431.txt
 ```
@@ -177,9 +206,13 @@ Notice that in this `listobs()` output, the first scans are the fields that will
 
 ### Initial/Cross-Calibration with processMeerKAT
 
-**The tutorial below is based on the MS `1525469431` which has a few non-standard details and requires updating the pipeline config file. If your MS has all the details, such as the DEEP2 data, you may jump some steps, such as step 4 of the tutorial.** 
+**Important Tutorial Note: Non-Standard Dataset**
 
-To start, `ssh` into the ilifu cluster (slurm.ilifu.ac.za), and created a working directory somewhere on the filesystem (e.g. `/scratch3/users/<username>/tutorial/1525469431` or `/scratch3/projects/<project>/tutorial/1525469431`), and navigate to this directory.
+This tutorial is specifically based on the Measurement Set (MS): 1525469431. This dataset contains non-standard observation details (e.g., missing a default reference antenna or unusual field definitions) that require manual updates to the default pipeline configuration file generated by processMeerKAT.
+
+If your own data set (e.g., DEEP2 observations) has correctly defined metadata and all required elements, you may be able to skip certain steps—such as Step 4 (Edit the config file), as the pipeline's auto-generated configuration will be sufficient. Please keep your own data set's specifics in mind as you follow along.
+
+To start, SSH into the ilifu cluster (slurm.ilifu.ac.za), and created a working directory somewhere on the filesystem (e.g. `/scratch3/users/<username>/tutorial/1525469431` or `/scratch3/projects/<project>/tutorial/1525469431`), and navigate to this directory.
 
 1. Source the processMeerKAT `setup.sh` script, which will add the necessary variables to your PATH and PYTHONPATH:
 ```bash
@@ -189,7 +222,8 @@ source /idia/software/pipelines/master/setup.sh
 ```bash
 processMeerKAT.py -B -C tutorial_config.txt -M /idia/data/public/1525469431/1525469431_sdp_l0.ms -v
 ```
-If all is good, this should be your output, with different timestamps. and now you shou have the `tutorial_config.txt` available in your workspace.
+If all is good, this should be your output, with different timestamps and now you shou have the `tutorial_config.txt` available in your workspace.
+
 ```bash
 processMeerKAT.py -B -C tutorial_config.txt -M /idia/data/public/1525469431/1525469431_sdp_l0.ms -v
 2025-09-17 10:52:11,534 INFO: Extracting field IDs from MeasurementSet "/idia/data/public/1525469431/1525469431_sdp_l0.ms" using CASA.
@@ -271,21 +305,21 @@ The purpose of this call is to read the input MS and extract information used to
     continue = True
     dopol = False
     ```
-This config file is organized into five sections: `data`, `fields`, `slurm`, `crosscal`, and `run`. The field IDs listed in the `fields` section should be automatically extracted by the pipeline and assigned as follows:
-    - Field 0 for the bandpass calibrator
-    - Field 0 for the total flux calibrator
-    - Field 2 for the phase calibrator
-    - Field 3 for the science target (e.g., the DEEP2 field)
-    - Field 1 for an extra calibrator, used for applying solutions and generating a quick-look image
+    This config file is organized into five sections: `data`, `fields`, `slurm`, `crosscal`, and `run`. The field IDs listed in the `fields` section should be automatically extracted by the pipeline and assigned as follows:
+        - Field 0 for the bandpass calibrator
+        - Field 0 for the total flux calibrator
+        - Field 2 for the phase calibrator
+        - Field 3 for the science target (e.g., the DEEP2 field)
+        - Field 1 for an extra calibrator, used for applying solutions and generating a quick-look image
 
     Only the target and extra fields can include multiple field IDs, separated by commas. If a field matching the required intent is not found, the pipeline will display a warning and select the total flux calibrator field by default. If the total flux calibrator is missing, the process will terminate with an error. For other section explanations please see the [DEEP2 tutorial](https://idia-pipelines.github.io/docs/processMeerKAT/deep-2-tutorial/).
 
-**Note**: the `fields` section of our config are empty strings and this should be automatically populated by the pipeline. If you check/build DEEP2 config file, you’ll notice that fields are automatically populated. The issue here is seen in step 2 above, the output includes an error:
-`ERROR: You must have a field with intent "CALIBRATE_FLUX". I only found ['CALIBRATE_AMPLI', 'CALIBRATE_PHASE', 'TARGET', 'UNKNOWN']` which does not occur with the DEEP2 data. **This highlights the importance of understanding your dataset before launching the pipeline**. While the default configuration may work in many cases, there are situations where you will need to inspect and manually update the config file to ensure proper calibration and processing
+    **Note**: the `fields` section of our config are empty strings and this should be automatically populated by the pipeline. If you check/build DEEP2 config file, you’ll notice that fields are automatically populated. The issue here is seen in step 2 above, the output includes an error:
+    `ERROR: You must have a field with intent "CALIBRATE_FLUX". I only found ['CALIBRATE_AMPLI', 'CALIBRATE_PHASE', 'TARGET', 'UNKNOWN']` which does not occur with the DEEP2 data. **This highlights the importance of understanding your dataset before launching the pipeline**. While the default configuration may work in many cases, there are situations where you will need to inspect and manually update the config file to ensure proper calibration and processing
 
 4. Edit the config file 
 
-    Here we update the config file to add the `fields` and also update the reference antenn, `refant`. As you can see from `listobs()` our data does not include the m059 antenna and the config file has specified this as the reference antenna. For this tutorial I am selectiong `m052` as my reference antenna. Why have I chosen this?
+    Here we update the config file to add the `fields` and also update the reference antenna, `refant`. As you can see from `listobs()` our data does not include the m059 antenna and the config file has specified this as the reference antenna. For this tutorial I am selecting `m052` as my reference antenna. Why have I chosen this?
 
     Our updated config should now be as follows:
     ```
@@ -570,7 +604,12 @@ A number of sbatch files have now been written to your working directory, each o
 
     As shown above, all jobs for this SPW have completed successfully. If any job had failed, it would be clearly indicated in the summary output, allowing you to review the logs and investigate the cause of the failure.
 
-8. If we updated only `fields` and the reference antenna, `refant`, was not updated to m052 —the available antenna— in the configuration file, running the pipeline without these changes would result in a failure or errors related to the missing reference antenna. **This underscores the importance of verifying and correctly setting the reference antenna in the configuration before executing the pipeline.**
+8. Once all jobs have completed successfully, you can inspect the diagnostic plots in the plots directory within your working area to evaluate the calibration quality. For instance, examine the gain amplitude plot for the calibrator field J1939-6342.
+
+    ![process_gain_amp](field_J1939-6342_gain_amp.png)
+
+
+9. If we updated only `fields` and the reference antenna, `refant`, was not updated to m052 —the available antenna— in the configuration file, running the pipeline without these changes would result in a failure or errors related to the missing reference antenna. **This underscores the importance of verifying and correctly setting the reference antenna in the configuration before executing the pipeline.**
 Below is an example case where the correct reference antenna was missing.
 
     The full summary (`./summary.sh`) of that failed processing is shown below.
@@ -931,5 +970,5 @@ The Oxkat pipeline is divided into five (or sometimes six) main processing stage
         **We are done with this tutorial, see if you can now reduce your images**
 
 
-# CARACAL Tutorial
+<!-- # CARACAL Tutorial -->
 
